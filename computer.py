@@ -6,64 +6,95 @@ Created on Tue Jul 22 13:44:49 2025
 """
 
 
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Dict
+import json
 
 
-@dataclass
 class Computer:
-    # Basic Info
-    brand: Optional[str] = None                                 # ex: Hp, Lenovo
-    name: Optional[str] = None                                  # ex: Victus 15, Ominbook X
-    style: str = "Laptop"                                       # Only 3 options: Laptop, All-in-One, or Tower
-    
-    # Reviews & Price
-    rating: float = 0.0                                         # 0.0 - 5.0
-    reviews: int = 0                                            # review count
-    
-    price: Optional[int] = None                                 # integer in dollars
-    msrp: Optional[int] = None                                  # manufacturer's suggested retail price
-    sale: int = 0                                               # percent off, 0 - 100
-    
-    # Size & Screen
-    weight: Optional[float] = None                              # pounds (lb)
-    dimensions: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None)
-                                                                # Length, Width, Thickness iches (in)
-    
-    screen: Optional[float] = None                              # diagonal (in), None for Tower
-    resolution: Tuple[int, int] = (1920, 1080)                  # Width x Height (px)
-    refresh: int = 60                                           # Hz
-    
-    # Features
-    keypad: bool = False                                        # ex: Yes, No
-    webcam: bool = False                                        # ex: Yes, No
-    backlit: bool = False                                       # ex: Yes, No
-    
-    # Hardware
-    cpu: Tuple[Optional[str], Optional[int], Optional[int], Optional[int], Optional[chr]] = (None, None, None, None, None)
-                                                                # (brand, family, generation, model, suffix)
-    gpu: Tuple[Optional[str], Optional[str], Optional[int], Optional[int], Optional[str]] = (None, None, None, None, None)    
-                                                                # (brand, type, generation/series, preformance, suffix)
-    
-    ram: Tuple[Optional[int], Optional[str]] = (None, None)     # (GB, type)
-    storage: Tuple[Optional[int], Optional[str]] = (None, None) # (GB, SSD or HDD)
-    
-    # URL & Timestamp
-    url: Optional[str] = None                                   # URL
-    timestamp: datetime = datetime.now()                        # timestamp
-    
-    score: Optional[float] = None
+    def __init__(self,
+            # Basic Info
+            brand: Optional[str] = None,                                       # ex: Hp, Lenovo
+            name: Optional[str] = None,                                        # ex: Victus 15, Ominbook X
+            style: str = "Laptop",                                             # Only 3 options: Laptop, All-in-One, or Tower
+            
+            # Reviews & Price
+            rating: float = None,                                               # 0.0 - 5.0
+            reviews: int = 0,                                                  # review count
+            
+            price: Optional[int] = None,                                       # integer in dollars
+            msrp: Optional[int] = None,                                        # manufacturer's suggested retail price
+            sale: int = 0,                                                     # percent off, 0 - 100
+            
+            # Size & Screen
+            weight: Optional[float] = None,                                    # pounds (lb)
+            dimensions: [Optional[float], Optional[float], Optional[float]] = 
+                            [None, None, None],                                # Length, Width, Thickness iches (in)
+            
+            screen: Optional[float] = None,                                    # diagonal (in), None for Tower
+            resolution: [int, int] = [1920, 1080],                             # Width x Height (px)
+            refresh: int = 60,                                                 # Hz
+            
+            # Features
+            keypad: bool = False,                                              # ex: Yes, No
+            webcam: bool = False,                                              # ex: Yes, No
+            backlit: bool = False,                                             # ex: Yes, No
+            
+            # Hardware
+            cpu: [Optional[str], Optional[int], Optional[int], Optional[int], Optional[chr]] =
+                            [None, None, None, None, None],                    # (brand, family, generation, model, suffix)
+            gpu: [Optional[str], Optional[str], Optional[int], Optional[int], Optional[str]] =
+                            [None, None, None, None, None],                    # (brand, type, generation/series, preformance, suffix)
+            
+            ram: [Optional[int], Optional[str]] = [None, None],                # (GB, type)
+            storage: [Optional[int], Optional[str]] = [None, None],            # (GB, SSD or HDD)
+            
+            # URL & Timestamp
+            url: Optional[str] = None,                                         # URL
+            timestamp: Optional[datetime] = None):                             # timestamp
+                    
+        self.brand = brand
+        self.name = name
+        self.style = style
+        
+        self.rating = rating
+        self.reviews = reviews
+        
+        self.price = price
+        self.msrp = msrp
+        self.sale = sale
+        
+        self.weight = weight
+        self.dimensions = dimensions
+        
+        self.screen = screen
+        self.resolution = resolution
+        self.refresh = refresh
+        
+        self.keypad = keypad
+        self.webcam = webcam
+        self.backlit = backlit
+        
+        self.cpu = cpu
+        self.gpu = gpu
+        self.ram = ram
+        self.storage = storage
+        
+        self.url = url
+        self.timestamp = datetime.now()
+        self.score = 0
+
+        self.check()
     
 
 
-    def __post_init__(self):
+    def check(self) -> None:
         # Style check
         if self.style not in {"Laptop", "All-in-One", "Tower"}:
             raise ValueError(f"Invalid style '{self.style}'. Must be Laptop, All-in-One, or Tower.")
 
         # Reviews checks
-        if not (0.0 <= self.rating <= 5.0):
+        if self.rating is not None and not (0.0 <= self.rating <= 5.0):
             raise ValueError(f"Rating of {self.rating} is outside of range 0 – 5")
         if self.reviews < 0:
             raise ValueError(f"Reviews of {self.reviews} is invalid")
@@ -107,8 +138,34 @@ class Computer:
         if self.storage[0] is not None and self.storage[0] < 0:
             raise ValueError(f"Storage of {self.storage[0]} GB is invalid")
             
+        self.score = self.create_score()
+            
+            
+    def create_score(self) -> float:
+        ratingScore = (self.rating * 20) if self.rating is not None else 90
+        
+        priceScore = min((self.msrp - self.price) / 5, 100) if (self.msrp is not None and self.price is not None) else 0
+        
+        resolutionScore = min(((self.resolution[0] * self.resolution[1]) / (1920 * 1080)) * 50, 100)
+        
+        refreshScore = min(self.refresh / 2.4, 100)
+        
+        featureScore = sum([self.keypad, self.webcam, self.backlit]) * 33.4
+        
+        cpuScore = min((self.cpu[1] - 1) * 12.5, 100) if self.cpu[1] is not None else 0
+        
+        gpuScore = min(self.gpu[2] + self.gpu[3] - 40, 100) if self.gpu[2] is not None else 20
+        
+        ramScore = min(self.ram[0] * 1.5625, 100) if self.ram[0] is not None else 6.25
+        
+        storageScore = min(self.storage[0] / 20, 100) if self.storage[0] is not None else 6
+        
+        self.score = min(round((ratingScore + priceScore + resolutionScore + refreshScore + featureScore + cpuScore + gpuScore + ramScore + storageScore) / 9, 2), 100)
+        return self.score
+    
+    
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Line 1: Basic
         line1 = f"{self.screen or None}\" {self.brand or 'Unknown'} {self.name or ''} {self.style}, {self.rating} Stars & {self.reviews} Reviews"
         
@@ -147,7 +204,7 @@ class Computer:
         return "\n".join([line1, line2, "", line3, line4, line5, "", cpuString, gpuString, ramString, storageString, "", urlString, timestampString])
         
     
-    def to_str(self):
+    def to_str(self) -> str:
         cpu, gpu= self.cpu, self.gpu
         
         priceString = f"${self.price}, " if self.price is not None else ""
@@ -161,37 +218,61 @@ class Computer:
         return priceString + basicString + cpuString + gpuString + ramString + storageString
         
     
-    def to_list(self):
-        return [self.price, (self.brand, self.name, self.style), (self.screen, self.resolution[0], self.resolution[1], self.refresh), self.cpu, self.gpu, self.ram, self.storage]
+    def to_list(self) -> list:
+        return [self.price, [self.brand, self.name, self.style], 
+                [self.screen, self.resolution[0], self.resolution[1], self.refresh],
+                self.cpu, self.gpu, self.ram, self.storage]
 
 
-    def create_score(self):
-        ratingScore = self.rating * 20
+    def to_row(self) -> list:
+        return [self.brand, self.name, self.style,
+                self.rating, self.reviews,
+                self.price, self.msrp, self.sale,
+                self.screen, self.resolution, self.refresh,
+                self.cpu, self.gpu, self.ram, self.storage,
+                self.url, self.timestamp.isoformat(), self.score]
+
+
+    def to_dict(self) -> dict:
+        return {'brand': self.brand, 'name': self.name, 'style': self.style,
+                'rating': self.rating, 'reviews': self.reviews,
+                'price': self.price, 'msrp': self.msrp, 'sale': self.sale,
+                'weight': self.weight, 'dimensions': self.dimensions,
+                'screen': self.screen, 'resolution': self.resolution, 'refresh': self.refresh,
+                'keypad': self.keypad, 'webcam': self.webcam, 'backlit': self.backlit,
+                'cpu': self.cpu, 'gpu': self.gpu, 'ram': self.ram, 'storage': self.storage,
+                'url': self.url, 'timestamp': self.timestamp, 'score': self.score}
+    
+    
+    def to_json(self) -> json:
+        tempDict = self.to_dict()
+        tempDict['timestamp'] = tempDict['timestamp'].isoformat()
+        return json.dumps(tempDict, indent = 4)
+    
+    
+    
+    def to_computer(data: dict) -> 'Computer':
+        tempComputer = Computer()
+        for key, val in data.items():
+            if hasattr(tempComputer, key):
+                setattr(tempComputer, key, val)
         
-        priceScore = min((self.msrp - self.price) / 5, 100)
+        tempComputer.check()
+        return tempComputer
         
-        resolutionScore = min(((self.resolution[0] * self.resolution[1]) / (1920 * 1080)) * 50, 100)
+    
+    def update(self, data: dict) -> None:
+        for key, vavlue in data.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
         
-        refreshScore = min(self.refresh / 2.4, 100)
-        
-        featureScore = sum([self.keypad, self.webcam, self.backlit]) * 33.4
-        
-        cpuScore = (self.cpu[1] - 1) * 12.5
-        
-        gpuScore = min(self.gpu[2] + self.gpu[3] - 40, 100)
-        
-        ramScore = min(self.ram[0] * 1.5625, 100)
-        
-        storageScore = min(self.storage[0] / 20, 100)
-        
-        self.score = min(round((ratingScore + priceScore + resolutionScore + refreshScore + featureScore + cpuScore + gpuScore + ramScore + storageScore) / 9, 2), 100)
-        return self.score
-        
+        self.check()
+    
     
     
 if __name__ == "__main__":
     pc = Computer()
-    # assign after init
+    
     pc.brand = "HP"
     pc.name = "Victus"
     pc.style = "Laptop"
@@ -201,22 +282,27 @@ if __name__ == "__main__":
     pc.msrp = 653.82
     pc.sale = 0
     pc.refresh = 144
-    pc.resolution = (1920, 1080)
+    pc.resolution = [1920, 1080]
     pc.weight = 5.06
-    pc.dimensions = (10.04, 14.09, 0.93)
+    pc.dimensions = [10.04, 14.09, 0.93]
     pc.screen = 15
     pc.keypad = True
     pc.backlit = True
     pc.webcam = True
-    pc.cpu = ("Intel", 5, 12, 450, "H")
-    pc.gpu = ("NVIDIA", "GeForce RTX", 30, 50, "")
-    pc.ram = (16, "DDR4")
-    pc.storage = (1000, "SSD")
+    pc.cpu = ["Intel", 5, 12, 450, "H"]
+    pc.gpu = ["NVIDIA", "GeForce RTX", 30, 50, ""]
+    pc.ram = [16, "DDR4"]
+    pc.storage = [1000, "SSD"]
     pc.url = "www.example.com"
+    
+    pc.check()
     print(pc)
     
+    pcPrint = pc.__str__()
     pcString = pc.to_str()
     pcList = pc.to_list()
-    pc.create_score()
+    pcRow = pc.to_row()
+    pcDict = pc.to_dict()
+    pcJson = pc.to_json()
     
     score = pc.score
